@@ -2,6 +2,10 @@ import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { BENCHMARKS, PERIODS, NIFTY_PRESETS } from '../types'
 import type { RRGRequest } from '../types'
+import { getConstituents } from '../api/rrg'
+
+// Benchmarks that have constituent data on the backend
+const CONSTITUENT_SUPPORTED = new Set(['^NSEI','^BSESN','^NSEBANK','^NSMIDCP','^NSEMDCP50','^CNXSC','^CNXIT'])
 
 interface Props {
   onFetch:        (req: RRGRequest) => void
@@ -10,15 +14,29 @@ interface Props {
 }
 
 export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props) {
-  const [symbols,    setSymbols]    = useState<string[]>(['RELIANCE.NS','TCS.NS','HDFCBANK.NS','INFY.NS','ICICIBANK.NS'])
-  const [input,      setInput]      = useState('')
-  const [benchmark,  setBenchmark]  = useState('^NSEI')
-  const [period,     setPeriod]     = useState('1y')
-  const [tailLength, setTailLength] = useState(5)
+  const [symbols,          setSymbols]          = useState<string[]>(['RELIANCE.NS','TCS.NS','HDFCBANK.NS','INFY.NS','ICICIBANK.NS'])
+  const [input,            setInput]            = useState('')
+  const [benchmark,        setBenchmark]        = useState('^NSEI')
+  const [period,           setPeriod]           = useState('1y')
+  const [tailLength,       setTailLength]       = useState(5)
+  const [loadingConstits,  setLoadingConstits]  = useState(false)
 
   const addSymbol = () => {
     const s = input.trim().toUpperCase()
-    if (s && !symbols.includes(s) && symbols.length < 20) { setSymbols(p => [...p, s]); setInput('') }
+    if (s && !symbols.includes(s) && symbols.length < 60) { setSymbols(p => [...p, s]); setInput('') }
+  }
+
+  const handleLoadConstituents = async () => {
+    setLoadingConstits(true)
+    try {
+      const res = await getConstituents(benchmark)
+      setSymbols(res.symbols)
+      onFetch({ symbols: res.symbols, benchmark, period, tail_length: tailLength })
+    } catch {
+      // silently fail — button just won't appear for unsupported benchmarks
+    } finally {
+      setLoadingConstits(false)
+    }
   }
 
   return (
@@ -38,6 +56,18 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
         <select value={benchmark} onChange={e => setBenchmark(e.target.value)} className="w-full bg-[#1e2536] border border-[#2d3748] text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
           {BENCHMARKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
         </select>
+        {CONSTITUENT_SUPPORTED.has(benchmark) && (
+          <button
+            onClick={handleLoadConstituents}
+            disabled={loading || loadingConstits}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-indigo-900/40 hover:bg-indigo-800/50 disabled:opacity-50 text-indigo-300 border border-indigo-800 hover:border-indigo-600 transition-colors"
+          >
+            {loadingConstits
+              ? <><span className="animate-spin w-3 h-3 border border-indigo-300/30 border-t-indigo-300 rounded-full inline-block"/>Loading…</>
+              : <>⊕ Load {BENCHMARKS.find(b => b.value === benchmark)?.label} Constituents</>
+            }
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -54,7 +84,7 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Symbols <span className="text-slate-600 normal-case font-normal">({symbols.length}/20)</span></label>
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Symbols <span className="text-slate-600 normal-case font-normal">({symbols.length}/60)</span></label>
         <div className="flex gap-2">
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && addSymbol()} placeholder="e.g. SBIN.NS" className="flex-1 bg-[#1e2536] border border-[#2d3748] text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-600 focus:outline-none focus:border-indigo-500" />
           <button onClick={addSymbol} className="px-3 py-2 rounded-lg bg-[#1e2536] hover:bg-[#2d3748] border border-[#2d3748] text-slate-300 text-sm">＋</button>

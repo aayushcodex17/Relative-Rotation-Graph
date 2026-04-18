@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import RRGRequest, RRGResponse
 from app.services.rrg_service import compute_rrg
+from app.data.constituents import INDEX_CONSTITUENTS
 
 router = APIRouter(prefix="/rrg", tags=["Relative Rotation Graph"])
 
@@ -41,8 +42,8 @@ def compute(request: RRGRequest):
     """
     if not request.symbols:
         raise HTTPException(status_code=400, detail="At least one symbol is required.")
-    if len(request.symbols) > 20:
-        raise HTTPException(status_code=400, detail="Maximum 20 symbols allowed per request.")
+    if len(request.symbols) > 60:
+        raise HTTPException(status_code=400, detail="Maximum 60 symbols allowed per request.")
 
     try:
         result = compute_rrg(
@@ -107,6 +108,28 @@ def quadrants():
             "Improving": {"rs_ratio": "<100", "rs_momentum": ">100", "meaning": "Underperforming but momentum is picking up. Early opportunity."},
         },
         "rotation": "Securities typically rotate clockwise: Leading → Weakening → Lagging → Improving → Leading"
+    }
+
+
+@router.get("/constituents/{benchmark}", summary="Get constituent stocks for a benchmark index")
+def get_constituents(benchmark: str):
+    """
+    Returns the list of constituent stocks for a given benchmark index symbol.
+    Supported: ^NSEI, ^BSESN, ^NSEBANK, ^NSMIDCP, ^NSEMDCP50, ^CNXSC, ^CNXIT.
+    """
+    # URL-safe: '^NSEI' may arrive as '%5ENSEI' — decode handled by FastAPI automatically.
+    entry = INDEX_CONSTITUENTS.get(benchmark)
+    if not entry:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No constituent data available for '{benchmark}'. "
+                   f"Supported: {list(INDEX_CONSTITUENTS.keys())}"
+        )
+    return {
+        "benchmark": benchmark,
+        "label":     entry["label"],
+        "count":     len(entry["symbols"]),
+        "symbols":   entry["symbols"],
     }
 
 

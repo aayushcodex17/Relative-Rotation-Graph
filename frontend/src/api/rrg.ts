@@ -14,3 +14,13 @@ export const getAllSectorRRG = (period = '1y', tail_length = 5): Promise<RRGResp
 
 export const getSectorGroups = (): Promise<{ groups: Record<string, {symbol: string, name: string}[]>, total: number }> =>
   api.get('/rrg/sectors/india/groups').then(r => r.data)
+
+export interface ConstituentResponse {
+  benchmark: string
+  label: string
+  count: number
+  symbols: string[]
+}
+
+export const getConstituents = (benchmark: string): Promise<ConstituentResponse> =>
+  api.get<ConstituentResponse>(`/rrg/constituents/${encodeURIComponent(benchmark)}`).then(r => r.data)
