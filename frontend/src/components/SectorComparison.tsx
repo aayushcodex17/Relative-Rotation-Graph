@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Plot from 'react-plotly.js'
+import Plot from './PlotWrapper'
 import { getAllSectorRRG } from '../api/rrg'
 import type { RRGResponse, RRGSecurity } from '../types'
 import { QUADRANT_COLORS, SECTOR_GROUP_COLORS, PERIODS } from '../types'

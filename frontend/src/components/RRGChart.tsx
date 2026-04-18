@@ -1,4 +1,4 @@
-import Plot from 'react-plotly.js'
+import Plot from './PlotWrapper'
 import type { RRGResponse } from '../types'
 import { QUADRANT_COLORS } from '../types'
 import { useMemo } from 'react'
