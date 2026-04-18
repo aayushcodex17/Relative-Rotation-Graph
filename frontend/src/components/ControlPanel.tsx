@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { KeyboardEvent } from 'react'
-import { BENCHMARKS, PERIODS, NIFTY_PRESETS } from '../types'
+import { BENCHMARKS, PERIODS, TRAIL_OPTIONS, NIFTY_PRESETS } from '../types'
 import type { RRGRequest } from '../types'
 import { getConstituents } from '../api/rrg'
 
@@ -17,7 +17,7 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
   const [input,           setInput]           = useState('')
   const [benchmark,       setBenchmark]       = useState('^NSEI')
   const [period,          setPeriod]          = useState('1y')
-  const [tailLength,      setTailLength]      = useState(5)
+  const [tailLength,      setTailLength]      = useState(7)
   const [loadingConstits, setLoadingConstits] = useState(false)
   const [initialized,     setInitialized]     = useState(false)
 
@@ -122,25 +122,43 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
         )}
       </div>
 
-      {/* Period + Trail */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Period</label>
-          <select
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-            className="w-full bg-[#1e2536] border border-[#2d3748] text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
-          >
-            {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
+      {/* Period */}
+      <div>
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Period</label>
+        <div className="grid grid-cols-4 gap-1">
+          {PERIODS.map(p => (
+            <button
+              key={p.value}
+              onClick={() => setPeriod(p.value)}
+              className={`text-xs py-1.5 rounded-md border transition-colors ${
+                period === p.value
+                  ? 'bg-indigo-600 border-indigo-500 text-white font-medium'
+                  : 'bg-[#1e2536] border-[#2d3748] text-slate-400 hover:border-slate-500 hover:text-slate-200'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Trail — {tailLength}w</label>
-          <input
-            type="range" min={3} max={12} value={tailLength}
-            onChange={e => setTailLength(Number(e.target.value))}
-            className="w-full mt-2 accent-indigo-500"
-          />
+      </div>
+
+      {/* Trail */}
+      <div>
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Trail Length</label>
+        <div className="flex gap-1">
+          {TRAIL_OPTIONS.map(t => (
+            <button
+              key={t.value}
+              onClick={() => setTailLength(t.value)}
+              className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${
+                tailLength === t.value
+                  ? 'bg-indigo-600 border-indigo-500 text-white font-medium'
+                  : 'bg-[#1e2536] border-[#2d3748] text-slate-400 hover:border-slate-500 hover:text-slate-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 

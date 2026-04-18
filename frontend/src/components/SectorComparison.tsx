@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Plot from './PlotWrapper'
 import { getAllSectorRRG } from '../api/rrg'
 import type { RRGResponse, RRGSecurity } from '../types'
-import { QUADRANT_COLORS, SECTOR_GROUP_COLORS, PERIODS } from '../types'
+import { QUADRANT_COLORS, SECTOR_GROUP_COLORS, PERIODS, TRAIL_OPTIONS } from '../types'
 
 const ALL_GROUPS = 'All Groups'
 
@@ -18,7 +18,7 @@ export default function SectorComparison() {
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [period,       setPeriod]       = useState('1y')
-  const [tailLength,   setTailLength]   = useState(5)
+  const [tailLength,   setTailLength]   = useState(7)
   const [activeGroup,  setActiveGroup]  = useState(ALL_GROUPS)
   const [xSpread,      setXSpread]      = useState(5)
   const [ySpread,      setYSpread]      = useState(5)
@@ -126,9 +126,9 @@ export default function SectorComparison() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Period */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Period:</span>
-            <div className="flex gap-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Period:</span>
+            <div className="flex flex-wrap gap-1">
               {PERIODS.map(p => (
                 <button key={p.value} onClick={() => { setPeriod(p.value); load(p.value, tailLength) }}
                   className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${period === p.value ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-[#1e2536] border-[#2d3748] text-slate-400 hover:border-slate-500'}`}>
@@ -139,12 +139,16 @@ export default function SectorComparison() {
           </div>
           {/* Trail */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">Trail:</span>
-            <input type="range" min={3} max={12} value={tailLength}
-              onChange={e => setTailLength(Number(e.target.value))}
-              onMouseUp={() => load(period, tailLength)}
-              className="w-24 accent-indigo-500" />
-            <span className="text-xs text-slate-400 w-6">{tailLength}w</span>
+            <span className="text-xs text-slate-500 whitespace-nowrap">Trail:</span>
+            <div className="flex gap-1">
+              {TRAIL_OPTIONS.map(t => (
+                <button key={t.value}
+                  onClick={() => { setTailLength(t.value); load(period, t.value) }}
+                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${tailLength === t.value ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-[#1e2536] border-[#2d3748] text-slate-400 hover:border-slate-500'}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
           {/* Refresh */}
           <button onClick={() => load(period, tailLength)} disabled={loading}

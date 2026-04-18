@@ -4,37 +4,34 @@ from datetime import datetime
 from typing import List
 
 from app.models.schemas import RRGPoint, RRGSecurity, RRGResponse, QuadrantSummary
-from app.services.data_service import fetch_closing_prices
+from app.services.data_service import fetch_closing_prices, get_period_config
 
-
-# JdK RS-Ratio & RS-Momentum smoothing period (standard: 10 weeks)
-SMOOTH_PERIOD = 10
-RS_RATIO_CENTER = 100.0
+RS_RATIO_CENTER   = 100.0
 RS_MOMENTUM_CENTER = 100.0
 
 
-def _calculate_rs_ratio(prices: pd.DataFrame, symbol: str, benchmark: str) -> pd.Series:
+def _calculate_rs_ratio(prices: pd.DataFrame, symbol: str, benchmark: str, smooth: int) -> pd.Series:
     """
     RS-Ratio: measures relative strength of symbol vs benchmark.
     Formula: smoothed(symbol / benchmark * 100) normalized to 100-center.
     """
     relative = (prices[symbol] / prices[benchmark]) * 100
-    smoothed = relative.rolling(window=SMOOTH_PERIOD).mean()
+    smoothed = relative.rolling(window=smooth).mean()
 
     # Normalize around 100
-    rs_ratio = (smoothed / smoothed.rolling(window=SMOOTH_PERIOD).mean()) * RS_RATIO_CENTER
+    rs_ratio = (smoothed / smoothed.rolling(window=smooth).mean()) * RS_RATIO_CENTER
     return rs_ratio
 
 
-def _calculate_rs_momentum(rs_ratio: pd.Series) -> pd.Series:
+def _calculate_rs_momentum(rs_ratio: pd.Series, smooth: int) -> pd.Series:
     """
     RS-Momentum: rate of change of RS-Ratio.
     Formula: smoothed(RS-Ratio / RS-Ratio[N periods ago]) normalized to 100-center.
     """
-    roc = (rs_ratio / rs_ratio.shift(SMOOTH_PERIOD)) * 100
-    smoothed = roc.rolling(window=SMOOTH_PERIOD).mean()
+    roc = (rs_ratio / rs_ratio.shift(smooth)) * 100
+    smoothed = roc.rolling(window=smooth).mean()
 
-    rs_momentum = (smoothed / smoothed.rolling(window=SMOOTH_PERIOD).mean()) * RS_MOMENTUM_CENTER
+    rs_momentum = (smoothed / smoothed.rolling(window=smooth).mean()) * RS_MOMENTUM_CENTER
     return rs_momentum
 
 
@@ -62,7 +59,9 @@ def _determine_quadrant(rs_ratio: float, rs_momentum: float) -> str:
 def compute_rrg(symbols: List[str], benchmark: str, period: str, tail_length: int) -> RRGResponse:
     """
     Main function: computes RRG data for all symbols against the benchmark.
+    The smoothing window and data interval are chosen automatically from the period.
     """
+    _, smooth = get_period_config(period)
     prices = fetch_closing_prices(symbols, benchmark, period)
 
     securities = []
@@ -74,11 +73,12 @@ def compute_rrg(symbols: List[str], benchmark: str, period: str, tail_length: in
         # Drop rows where either symbol or benchmark has NaN
         valid = prices[[symbol, benchmark]].dropna()
 
-        if len(valid) < SMOOTH_PERIOD * 2 + tail_length:
+        # Need enough rows for two full smoothing passes + the visible tail
+        if len(valid) < smooth * 2 + tail_length:
             continue
 
-        rs_ratio = _calculate_rs_ratio(valid, symbol, benchmark)
-        rs_momentum = _calculate_rs_momentum(rs_ratio)
+        rs_ratio = _calculate_rs_ratio(valid, symbol, benchmark, smooth)
+        rs_momentum = _calculate_rs_momentum(rs_ratio, smooth)
 
         combined = pd.DataFrame({
             "rs_ratio": rs_ratio,

@@ -83,7 +83,20 @@ export const BENCHMARKS = [
 ]
 
 export const PERIODS = [
-  { label: '6 Months', value: '6mo'  },
-  { label: '1 Year',   value: '1y'   },
-  { label: '2 Years',  value: '2y'   },
+  { label: '7 Days',   value: '7d'  },
+  { label: '14 Days',  value: '14d' },
+  { label: '1 Month',  value: '1mo' },
+  { label: '3 Months', value: '3mo' },
+  { label: '6 Months', value: '6mo' },
+  { label: '1 Year',   value: '1y'  },
+  { label: '2 Years',  value: '2y'  },
+]
+
+// Trail = number of data points shown in the tail on the chart
+export const TRAIL_OPTIONS = [
+  { label: '1d',  value: 1  },
+  { label: '3d',  value: 3  },
+  { label: '5d',  value: 5  },
+  { label: '1w',  value: 7  },
+  { label: '2w',  value: 14 },
 ]
