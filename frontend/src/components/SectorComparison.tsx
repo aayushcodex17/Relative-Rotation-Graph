@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Plot from './PlotWrapper'
 import { getAllSectorRRG } from '../api/rrg'
 import type { RRGResponse, RRGSecurity } from '../types'
 import { QUADRANT_COLORS, SECTOR_GROUP_COLORS, PERIODS } from '../types'
 
 const ALL_GROUPS = 'All Groups'
+
+function calcSpread(values: number[], pad = 1.5) {
+  if (!values.length) return 5
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  return Math.ceil(Math.max(3, Math.max(100 - min, max - 100) + pad))
+}
 
 export default function SectorComparison() {
   const [data,         setData]         = useState<RRGResponse | null>(null)
@@ -13,6 +20,8 @@ export default function SectorComparison() {
   const [period,       setPeriod]       = useState('1y')
   const [tailLength,   setTailLength]   = useState(5)
   const [activeGroup,  setActiveGroup]  = useState(ALL_GROUPS)
+  const [xSpread,      setXSpread]      = useState(5)
+  const [ySpread,      setYSpread]      = useState(5)
 
   const load = async (p: string, t: number) => {
     setLoading(true); setError(null)
@@ -30,6 +39,23 @@ export default function SectorComparison() {
   const filtered: RRGSecurity[] = data
     ? (activeGroup === ALL_GROUPS ? data.securities : data.securities.filter(s => s.group === activeGroup))
     : []
+
+  const autoSpread = useMemo(() => {
+    const ratios    = filtered.flatMap(s => s.tail.map(p => p.rs_ratio))
+    const momentums = filtered.flatMap(s => s.tail.map(p => p.rs_momentum))
+    return { x: calcSpread(ratios), y: calcSpread(momentums) }
+  }, [filtered])
+
+  // Reset when new data or group filter changes
+  useEffect(() => {
+    setXSpread(autoSpread.x)
+    setYSpread(autoSpread.y)
+  }, [autoSpread.x, autoSpread.y])
+
+  const rMin = 100 - xSpread
+  const rMax = 100 + xSpread
+  const mMin = 100 - ySpread
+  const mMax = 100 + ySpread
 
   // Build Plotly traces
   const traces: Plotly.Data[] = []
@@ -66,14 +92,6 @@ export default function SectorComparison() {
       } as any)
     })
   }
-
-  const allRatio    = filtered.flatMap(s => s.tail.map(p => p.rs_ratio))
-  const allMomentum = filtered.flatMap(s => s.tail.map(p => p.rs_momentum))
-  const pad = 1.5
-  const rMin = Math.min(97, allRatio.length    ? Math.min(...allRatio)    - pad : 97)
-  const rMax = Math.max(103, allRatio.length   ? Math.max(...allRatio)    + pad : 103)
-  const mMin = Math.min(97, allMomentum.length ? Math.min(...allMomentum) - pad : 97)
-  const mMax = Math.max(103, allMomentum.length? Math.max(...allMomentum) + pad : 103)
 
   const layout: Partial<Plotly.Layout> = {
     paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
@@ -170,24 +188,63 @@ export default function SectorComparison() {
       </div>
 
       {/* Chart */}
-      <div className="card flex-1 relative min-h-0">
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#111827]/80 rounded-xl z-10">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"/>
-              <p className="text-sm text-slate-400">Fetching all sector data…</p>
+      <div className="card flex-1 relative min-h-0 flex flex-col">
+        {/* Axis range sliders */}
+        <div className="flex items-center gap-5 px-1 pt-1 pb-1 flex-shrink-0">
+          {/* X-axis */}
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-xs text-slate-500 whitespace-nowrap">X-Axis ±</span>
+            <input
+              type="range" min={2} max={20} step={0.5} value={xSpread}
+              onChange={e => setXSpread(Number(e.target.value))}
+              className="flex-1 accent-indigo-500 h-1"
+            />
+            <span className="text-xs font-mono text-slate-400 w-14 text-right">
+              [{(100 - xSpread).toFixed(1)}, {(100 + xSpread).toFixed(1)}]
+            </span>
+          </div>
+          {/* Y-axis */}
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Y-Axis ±</span>
+            <input
+              type="range" min={2} max={20} step={0.5} value={ySpread}
+              onChange={e => setYSpread(Number(e.target.value))}
+              className="flex-1 accent-indigo-500 h-1"
+            />
+            <span className="text-xs font-mono text-slate-400 w-14 text-right">
+              [{(100 - ySpread).toFixed(1)}, {(100 + ySpread).toFixed(1)}]
+            </span>
+          </div>
+          {/* Reset */}
+          {(xSpread !== autoSpread.x || ySpread !== autoSpread.y) && (
+            <button
+              onClick={() => { setXSpread(autoSpread.x); setYSpread(autoSpread.y) }}
+              className="text-xs px-2.5 py-1 rounded-md bg-[#1e2536] hover:bg-[#2d3748] border border-[#2d3748] text-slate-400 hover:text-slate-200 transition-colors whitespace-nowrap">
+              ↺ Auto-fit
+            </button>
+          )}
+        </div>
+
+        {/* Plot area */}
+        <div className="flex-1 min-h-0 relative">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111827]/80 rounded-xl z-10">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"/>
+                <p className="text-sm text-slate-400">Fetching all sector data…</p>
+              </div>
             </div>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
-        {filtered.length > 0 && (
-          <Plot data={traces} layout={layout} config={{ displayModeBar: false, responsive: true }}
-            style={{ width: '100%', height: '100%' }} useResizeHandler />
-        )}
+          )}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+          {filtered.length > 0 && (
+            <Plot data={traces} layout={layout} config={{ displayModeBar: false, responsive: true }}
+              style={{ width: '100%', height: '100%' }} useResizeHandler />
+          )}
+        </div>
       </div>
 
       {/* Sector table */}
