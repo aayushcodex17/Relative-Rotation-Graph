@@ -71,11 +71,15 @@ export const NIFTY_PRESETS: Record<string, string[]> = {
 }
 
 export const BENCHMARKS = [
-  { label: 'Nifty 50',     value: '^NSEI'    },
-  { label: 'Bank Nifty',   value: '^NSEBANK' },
-  { label: 'Nifty 500',    value: '^CRSLDX'  },
-  { label: 'S&P 500',      value: '^GSPC'    },
-  { label: 'Nasdaq',       value: '^IXIC'    },
+  { label: 'Nifty 50',      value: '^NSEI'      },
+  { label: 'Nifty Next 50', value: '^NSMIDCP'   },
+  { label: 'Midcap 50',     value: '^NSEMDCP50' },
+  { label: 'Smallcap 100',  value: '^CNXSC'     },
+  { label: 'Sensex',        value: '^BSESN'     },
+  { label: 'Bank Nifty',    value: '^NSEBANK'   },
+  { label: 'Nifty 500',     value: '^CRSLDX'    },
+  { label: 'S&P 500',       value: '^GSPC'      },
+  { label: 'Nasdaq',        value: '^IXIC'      },
 ]
 
 export const PERIODS = [
