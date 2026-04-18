@@ -7,16 +7,35 @@ export interface RRGPoint {
 export interface RRGSecurity {
   symbol: string
   name: string | null
+  group: string | null
   quadrant: 'Leading' | 'Weakening' | 'Lagging' | 'Improving'
   tail: RRGPoint[]
   current_rs_ratio: number
   current_rs_momentum: number
 }
 
+export interface QuadrantSummary {
+  leading: number
+  weakening: number
+  lagging: number
+  improving: number
+}
+
 export interface RRGResponse {
   benchmark: string
   securities: RRGSecurity[]
+  quadrant_summary: QuadrantSummary | null
   generated_at: string
+}
+
+export const SECTOR_GROUP_COLORS: Record<string, string> = {
+  'Banking & Finance':     '#818cf8',
+  'Technology':            '#34d399',
+  'Consumption & Cyclical':'#fb923c',
+  'Healthcare & Defensive':'#f472b6',
+  'Commodities & Infra':   '#fbbf24',
+  'PSU & Government':      '#60a5fa',
+  'Services':              '#a78bfa',
 }
 
 export interface RRGRequest {

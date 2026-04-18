@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 from typing import List
 
-from app.models.schemas import RRGPoint, RRGSecurity, RRGResponse
+from app.models.schemas import RRGPoint, RRGSecurity, RRGResponse, QuadrantSummary
 from app.services.data_service import fetch_closing_prices
 
 
@@ -112,8 +112,16 @@ def compute_rrg(symbols: List[str], benchmark: str, period: str, tail_length: in
             current_rs_momentum=current_rs_momentum
         ))
 
+    summary = QuadrantSummary(
+        leading=sum(1 for s in securities if s.quadrant == "Leading"),
+        weakening=sum(1 for s in securities if s.quadrant == "Weakening"),
+        lagging=sum(1 for s in securities if s.quadrant == "Lagging"),
+        improving=sum(1 for s in securities if s.quadrant == "Improving"),
+    )
+
     return RRGResponse(
         benchmark=benchmark,
         securities=securities,
+        quadrant_summary=summary,
         generated_at=datetime.utcnow().isoformat()
     )

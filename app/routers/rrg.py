@@ -4,19 +4,29 @@ from app.services.rrg_service import compute_rrg
 
 router = APIRouter(prefix="/rrg", tags=["Relative Rotation Graph"])
 
-# Preset watchlists for Indian markets
-NIFTY_50_SECTORS = {
-    "Nifty Bank":        "^NSEBANK",
-    "Nifty IT":          "^CNXIT",
-    "Nifty Auto":        "^CNXAUTO",
-    "Nifty Pharma":      "^CNXPHARMA",
-    "Nifty FMCG":        "^CNXFMCG",
-    "Nifty Metal":       "^CNXMETAL",
-    "Nifty Realty":      "^CNXREALTY",
-    "Nifty Energy":      "^CNXENERGY",
-    "Nifty Infra":       "^CNXINFRA",
-    "Nifty Media":       "^CNXMEDIA",
+# All 14 verified working NSE sectoral indices grouped by category
+ALL_NSE_SECTORS: dict[str, dict] = {
+    "^NSEBANK":    {"name": "Nifty Bank",        "group": "Banking & Finance"},
+    "^CNXPSUBANK": {"name": "Nifty PSU Bank",     "group": "Banking & Finance"},
+    "^CNXFINANCE": {"name": "Nifty Financial Svc","group": "Banking & Finance"},
+    "^CNXIT":      {"name": "Nifty IT",           "group": "Technology"},
+    "^CNXAUTO":    {"name": "Nifty Auto",         "group": "Consumption & Cyclical"},
+    "^CNXFMCG":    {"name": "Nifty FMCG",         "group": "Consumption & Cyclical"},
+    "^CNXREALTY":  {"name": "Nifty Realty",       "group": "Consumption & Cyclical"},
+    "^CNXMEDIA":   {"name": "Nifty Media",        "group": "Consumption & Cyclical"},
+    "^CNXMNC":     {"name": "Nifty MNC",          "group": "Consumption & Cyclical"},
+    "^CNXPHARMA":  {"name": "Nifty Pharma",       "group": "Healthcare & Defensive"},
+    "^CNXMETAL":   {"name": "Nifty Metal",        "group": "Commodities & Infra"},
+    "^CNXENERGY":  {"name": "Nifty Energy",       "group": "Commodities & Infra"},
+    "^CNXINFRA":   {"name": "Nifty Infra",        "group": "Commodities & Infra"},
+    "^CNXPSE":     {"name": "Nifty PSE",          "group": "PSU & Government"},
+    "^CNXSERVICE": {"name": "Nifty Services",     "group": "Services"},
 }
+
+# Subset used by old /sectors/india endpoint (kept for backward compat)
+NIFTY_CORE_SECTORS = {k: v for k, v in ALL_NSE_SECTORS.items()
+                      if k in {"^NSEBANK","^CNXIT","^CNXAUTO","^CNXPHARMA","^CNXFMCG",
+                                "^CNXMETAL","^CNXREALTY","^CNXENERGY","^CNXINFRA","^CNXMEDIA"}}
 
 
 @router.post("/compute", response_model=RRGResponse, summary="Compute RRG for given symbols")
@@ -50,28 +60,39 @@ def compute(request: RRGRequest):
     return result
 
 
-@router.post("/sectors/india", response_model=RRGResponse, summary="RRG for Nifty sector indices")
+@router.post("/sectors/india", response_model=RRGResponse, summary="RRG for core Nifty sector indices")
 def sectors_india(period: str = "1y", tail_length: int = 5):
-    """
-    Pre-built RRG for all major Nifty sector indices vs Nifty 50.
-    No input needed — just call and get sector rotation data.
-    """
-    symbols = list(NIFTY_50_SECTORS.values())
-    try:
-        result = compute_rrg(
-            symbols=symbols,
-            benchmark="^NSEI",
-            period=period,
-            tail_length=tail_length
-        )
-        # Attach human-readable names
-        name_map = {v: k for k, v in NIFTY_50_SECTORS.items()}
-        for sec in result.securities:
-            sec.name = name_map.get(sec.symbol, sec.symbol)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to compute sector RRG: {str(e)}")
+    """Pre-built RRG for 10 core Nifty sector indices vs Nifty 50."""
+    return _build_sector_rrg(NIFTY_CORE_SECTORS, period, tail_length)
 
-    return result
+
+@router.post("/sectors/india/all", response_model=RRGResponse, summary="RRG for ALL NSE sectoral indices")
+def sectors_india_all(period: str = "1y", tail_length: int = 5):
+    """
+    Compare ALL available NSE sectoral indices on a single RRG vs Nifty 50.
+
+    Includes 15 sector indices across 5 groups:
+    - **Banking & Finance**: Bank, PSU Bank, Financial Services
+    - **Technology**: IT
+    - **Consumption & Cyclical**: Auto, FMCG, Realty, Media, MNC
+    - **Healthcare & Defensive**: Pharma
+    - **Commodities & Infra**: Metal, Energy, Infra
+    - **PSU & Government**: PSE
+    - **Services**: Services Sector
+    """
+    return _build_sector_rrg(ALL_NSE_SECTORS, period, tail_length)
+
+
+@router.get("/sectors/india/groups", summary="List all NSE sector groups and their indices")
+def sector_groups():
+    """Returns all sector indices grouped by category — useful for building filter UIs."""
+    groups: dict[str, list] = {}
+    for sym, meta in ALL_NSE_SECTORS.items():
+        g = meta["group"]
+        if g not in groups:
+            groups[g] = []
+        groups[g].append({"symbol": sym, "name": meta["name"]})
+    return {"groups": groups, "total": len(ALL_NSE_SECTORS)}
 
 
 @router.get("/quadrants", summary="Explanation of RRG quadrants")
@@ -87,3 +108,20 @@ def quadrants():
         },
         "rotation": "Securities typically rotate clockwise: Leading → Weakening → Lagging → Improving → Leading"
     }
+
+
+# ── Internal helper ────────────────────────────────────────────────────────────
+
+def _build_sector_rrg(sector_map: dict, period: str, tail_length: int) -> RRGResponse:
+    symbols = list(sector_map.keys())
+    try:
+        result = compute_rrg(symbols=symbols, benchmark="^NSEI", period=period, tail_length=tail_length)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to compute sector RRG: {str(e)}")
+
+    for sec in result.securities:
+        meta = sector_map.get(sec.symbol, {})
+        sec.name  = meta.get("name",  sec.symbol)
+        sec.group = meta.get("group", None)
+
+    return result
