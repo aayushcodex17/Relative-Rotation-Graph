@@ -1,21 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import RRGChart         from './components/RRGChart'
 import ControlPanel     from './components/ControlPanel'
 import SecuritiesTable  from './components/SecuritiesTable'
 import QuadrantLegend   from './components/QuadrantLegend'
 import SectorComparison from './components/SectorComparison'
 import { useRRG } from './hooks/useRRG'
-import { NIFTY_PRESETS } from './types'
 
 type Tab = 'custom' | 'sectors'
 
 export default function App() {
   const { data, loading, error, fetch, fetchSectors } = useRRG()
   const [tab, setTab] = useState<Tab>('custom')
-
-  useEffect(() => {
-    fetch({ symbols: NIFTY_PRESETS['Nifty Top 10'], benchmark: '^NSEI', period: '1y', tail_length: 5 })
-  }, [])
 
   return (
     <div className="min-h-screen bg-[#0b0f19] flex flex-col">
