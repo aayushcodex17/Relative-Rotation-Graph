@@ -120,7 +120,7 @@ export default function SectorComparison() {
   const summary = data?.quadrant_summary
 
   return (
-    <div className="flex flex-col h-full gap-3 p-4">
+    <div className="flex flex-col gap-3 p-4">
 
       {/* Top bar: controls + quadrant summary */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -187,8 +187,8 @@ export default function SectorComparison() {
         })}
       </div>
 
-      {/* Chart */}
-      <div className="card flex-1 relative min-h-0 flex flex-col">
+      {/* Chart — always half the viewport height */}
+      <div className="card h-[50vh] min-h-[360px] flex-shrink-0 relative flex flex-col">
         {/* Axis range sliders */}
         <div className="flex items-center gap-5 px-1 pt-1 pb-1 flex-shrink-0">
           {/* X-axis */}
