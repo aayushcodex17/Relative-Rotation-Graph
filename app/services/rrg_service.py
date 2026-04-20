@@ -10,28 +10,33 @@ RS_RATIO_CENTER   = 100.0
 RS_MOMENTUM_CENTER = 100.0
 
 
+def _ewm(series: pd.Series, span: int) -> pd.Series:
+    """Exponential weighted mean — uses all available data from the first point,
+    so it introduces zero NaN beyond what's already present in the input."""
+    return series.ewm(span=span, adjust=False).mean()
+
+
 def _calculate_rs_ratio(prices: pd.DataFrame, symbol: str, benchmark: str, smooth: int) -> pd.Series:
     """
     RS-Ratio: measures relative strength of symbol vs benchmark.
-    Formula: smoothed(symbol / benchmark * 100) normalized to 100-center.
+    Uses EWM smoothing so only `smooth` rows are consumed (from the shift),
+    not the 5×smooth rows that chained SMA rolling windows would consume.
     """
     relative = (prices[symbol] / prices[benchmark]) * 100
-    smoothed = relative.rolling(window=smooth).mean()
-
-    # Normalize around 100
-    rs_ratio = (smoothed / smoothed.rolling(window=smooth).mean()) * RS_RATIO_CENTER
+    smoothed  = _ewm(relative, smooth)
+    # Normalize: each value expressed as % of its own smoothed baseline → centred at 100
+    rs_ratio  = (smoothed / _ewm(smoothed, smooth)) * RS_RATIO_CENTER
     return rs_ratio
 
 
 def _calculate_rs_momentum(rs_ratio: pd.Series, smooth: int) -> pd.Series:
     """
-    RS-Momentum: rate of change of RS-Ratio.
-    Formula: smoothed(RS-Ratio / RS-Ratio[N periods ago]) normalized to 100-center.
+    RS-Momentum: rate-of-change of RS-Ratio, smoothed and normalised to 100.
+    The only hard NaN source is the shift(smooth) — EWM itself starts from row 0.
     """
-    roc = (rs_ratio / rs_ratio.shift(smooth)) * 100
-    smoothed = roc.rolling(window=smooth).mean()
-
-    rs_momentum = (smoothed / smoothed.rolling(window=smooth).mean()) * RS_MOMENTUM_CENTER
+    roc         = (rs_ratio / rs_ratio.shift(smooth)) * 100
+    smoothed    = _ewm(roc, smooth)
+    rs_momentum = (smoothed / _ewm(smoothed, smooth)) * RS_MOMENTUM_CENTER
     return rs_momentum
 
 
@@ -73,23 +78,25 @@ def compute_rrg(symbols: List[str], benchmark: str, period: str, tail_length: in
         # Drop rows where either symbol or benchmark has NaN
         valid = prices[[symbol, benchmark]].dropna()
 
-        # Need enough rows for two full smoothing passes + the visible tail
-        if len(valid) < smooth * 2 + tail_length:
+        # With EWM the only hard NaN source is shift(smooth) in RS-Momentum.
+        # Require at least smooth + 1 rows so we get at least one valid point.
+        if len(valid) < smooth + 1:
             continue
 
-        rs_ratio = _calculate_rs_ratio(valid, symbol, benchmark, smooth)
+        rs_ratio    = _calculate_rs_ratio(valid, symbol, benchmark, smooth)
         rs_momentum = _calculate_rs_momentum(rs_ratio, smooth)
 
         combined = pd.DataFrame({
-            "rs_ratio": rs_ratio,
-            "rs_momentum": rs_momentum
+            "rs_ratio":    rs_ratio,
+            "rs_momentum": rs_momentum,
         }).dropna()
 
         if combined.empty:
             continue
 
-        # Build tail — last N points
-        tail_data = combined.tail(tail_length)
+        # Cap tail to however many valid points exist — never silently drop a symbol
+        actual_tail = min(tail_length, len(combined))
+        tail_data   = combined.tail(actual_tail)
         tail = [
             RRGPoint(
                 date=str(idx.date()),
