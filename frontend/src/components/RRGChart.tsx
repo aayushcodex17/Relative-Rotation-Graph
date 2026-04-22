@@ -1,9 +1,12 @@
 import Plot from './PlotWrapper'
-import type { RRGResponse } from '../types'
+import type { RRGResponse, RRGSecurity } from '../types'
 import { QUADRANT_COLORS } from '../types'
 import { useMemo, useState, useEffect } from 'react'
 
 interface Props { data: RRGResponse }
+
+type Quadrant = RRGSecurity['quadrant']
+const ALL_QUADRANTS: Quadrant[] = ['Leading', 'Weakening', 'Lagging', 'Improving']
 
 function calcSpread(values: number[], pad = 1.5) {
   if (!values.length) return 5
@@ -13,6 +16,26 @@ function calcSpread(values: number[], pad = 1.5) {
 }
 
 export default function RRGChart({ data }: Props) {
+  const [activeQuadrants, setActiveQuadrants] = useState<Set<Quadrant>>(new Set(ALL_QUADRANTS))
+
+  const toggleQuadrant = (q: Quadrant) => {
+    setActiveQuadrants(prev => {
+      const next = new Set(prev)
+      if (next.has(q)) {
+        if (next.size === 1) return prev // keep at least one active
+        next.delete(q)
+      } else {
+        next.add(q)
+      }
+      return next
+    })
+  }
+
+  const visibleSecurities = useMemo(
+    () => data.securities.filter(s => activeQuadrants.has(s.quadrant)),
+    [data.securities, activeQuadrants]
+  )
+
   const autoSpread = useMemo(() => {
     const ratios    = data.securities.flatMap(s => s.tail.map(p => p.rs_ratio))
     const momentums = data.securities.flatMap(s => s.tail.map(p => p.rs_momentum))
@@ -35,7 +58,7 @@ export default function RRGChart({ data }: Props) {
 
   const traces = useMemo<Plotly.Data[]>(() => {
     const t: Plotly.Data[] = []
-    data.securities.forEach(sec => {
+    visibleSecurities.forEach(sec => {
       const color = QUADRANT_COLORS[sec.quadrant]
       const xs = sec.tail.map(p => p.rs_ratio)
       const ys = sec.tail.map(p => p.rs_momentum)
@@ -54,7 +77,7 @@ export default function RRGChart({ data }: Props) {
       } as any)
     })
     return t
-  }, [data])
+  }, [visibleSecurities])
 
   const layout: Partial<Plotly.Layout> = {
     paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
@@ -85,8 +108,31 @@ export default function RRGChart({ data }: Props) {
   return (
     <div className="flex flex-col h-full gap-2">
 
+      {/* Quadrant filter */}
+      <div className="flex items-center gap-2 px-1 pt-1">
+        <span className="text-xs text-slate-500 whitespace-nowrap">Show:</span>
+        {ALL_QUADRANTS.map(q => {
+          const color = QUADRANT_COLORS[q]
+          const active = activeQuadrants.has(q)
+          return (
+            <button
+              key={q}
+              onClick={() => toggleQuadrant(q)}
+              style={active ? { borderColor: color.dot, color: color.dot, backgroundColor: color.bg } : {}}
+              className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                active
+                  ? 'font-medium'
+                  : 'border-[#2d3748] text-slate-600 bg-transparent line-through'
+              }`}
+            >
+              {q}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Axis range sliders */}
-      <div className="flex items-center gap-5 px-1 pt-1">
+      <div className="flex items-center gap-5 px-1">
         {/* X-axis */}
         <div className="flex items-center gap-2 flex-1">
           <span className="text-xs text-slate-500 whitespace-nowrap">X-Axis ±</span>

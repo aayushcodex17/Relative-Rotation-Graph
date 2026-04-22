@@ -42,8 +42,8 @@ def compute(request: RRGRequest):
     """
     if not request.symbols:
         raise HTTPException(status_code=400, detail="At least one symbol is required.")
-    if len(request.symbols) > 60:
-        raise HTTPException(status_code=400, detail="Maximum 60 symbols allowed per request.")
+    if len(request.symbols) > 200:
+        raise HTTPException(status_code=400, detail="Maximum 200 symbols allowed per request.")
 
     try:
         result = compute_rrg(

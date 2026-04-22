@@ -102,4 +102,68 @@ INDEX_CONSTITUENTS: dict[str, dict] = {
             "LTIM.NS", "MPHASIS.NS", "COFORGE.NS", "PERSISTENT.NS", "OFSS.NS",
         ],
     },
+
+    # ── NSE F&O Segment (~180 stocks eligible for Futures & Options) ──────────
+    # Source: NSE Securities available in F&O segment, April 2025.
+    "FNO": {
+        "label": "NSE F&O",
+        "symbols": [
+            # Banking & Financial Services
+            "ABCAPITAL.NS",   "ANGELONE.NS",    "AXISBANK.NS",    "BAJAJFINSV.NS",  "BAJFINANCE.NS",
+            "BANDHANBNK.NS",  "BANKBARODA.NS",  "BSE.NS",         "CANBK.NS",       "CDSL.NS",
+            "CHOLAFIN.NS",    "FEDERALBNK.NS",  "HDFCAMC.NS",     "HDFCBANK.NS",    "HDFCLIFE.NS",
+            "ICICIGI.NS",     "ICICIBANK.NS",   "ICICIPRULI.NS",  "IDFCFIRSTB.NS",  "IEX.NS",
+            "INDUSINDBK.NS",  "JIOFIN.NS",      "KOTAKBANK.NS",   "L&TFH.NS",       "LICHSGFIN.NS",
+            "LICI.NS",        "MANAPPURAM.NS",  "M&MFIN.NS",      "MCX.NS",         "MFSL.NS",
+            "MUTHOOTFIN.NS",  "PFC.NS",         "PNB.NS",         "POONAWALLA.NS",  "RECLTD.NS",
+            "SBICARD.NS",     "SBILIFE.NS",     "SBIN.NS",        "SHRIRAMFIN.NS",  "UNIONBANK.NS",
+            # IT & Technology
+            "BSOFT.NS",       "COFORGE.NS",     "HCLTECH.NS",     "INDIAMART.NS",   "INFY.NS",
+            "INTELLECT.NS",   "KPITTECH.NS",    "LTIM.NS",        "LTTS.NS",        "MPHASIS.NS",
+            "OFSS.NS",        "PERSISTENT.NS",  "TCS.NS",         "TECHM.NS",       "WIPRO.NS",
+            # Automobiles & Auto Ancillaries
+            "APOLLOTYRE.NS",  "ASHOKLEY.NS",    "BAJAJ-AUTO.NS",  "BALKRISIND.NS",  "BHARATFORG.NS",
+            "BOSCHLTD.NS",    "EICHERMOT.NS",   "ESCORTS.NS",     "EXIDEIND.NS",    "HEROMOTOCO.NS",
+            "M&M.NS",         "MARUTI.NS",      "MOTHERSON.NS",   "MRF.NS",         "TATAMOTORS.NS",
+            "TVSMOTOR.NS",
+            # Pharmaceuticals & Healthcare
+            "ABBOTINDIA.NS",  "ALKEM.NS",       "APOLLOHOSP.NS",  "AUROPHARMA.NS",  "BIOCON.NS",
+            "CIPLA.NS",       "DIVISLAB.NS",    "DRREDDY.NS",     "GLENMARK.NS",    "IPCALAB.NS",
+            "LALPATHLAB.NS",  "LAURUSLABS.NS",  "LUPIN.NS",       "MANKIND.NS",     "METROPOLIS.NS",
+            "SUNPHARMA.NS",   "SYNGENE.NS",     "TORNTPHARM.NS",  "ZYDUSLIFE.NS",
+            # FMCG & Consumer Staples
+            "ASIANPAINT.NS",  "BATAINDIA.NS",   "BERGEPAINT.NS",  "BRITANNIA.NS",   "COLPAL.NS",
+            "DABUR.NS",       "EMAMILTD.NS",    "GODREJCP.NS",    "HINDUNILVR.NS",  "ITC.NS",
+            "MARICO.NS",      "MCDOWELL-N.NS",  "NESTLEIND.NS",   "PAGEIND.NS",     "PIDILITIND.NS",
+            "TATACONSUM.NS",  "UBL.NS",
+            # Oil, Gas & Power
+            "ATGL.NS",        "BPCL.NS",        "GAIL.NS",        "GSPL.NS",        "HINDPETRO.NS",
+            "IGL.NS",         "IOC.NS",         "JSWENERGY.NS",   "NHPC.NS",        "NTPC.NS",
+            "ONGC.NS",        "PETRONET.NS",    "POWERGRID.NS",   "TATAPOWER.NS",   "TORNTPOWER.NS",
+            "ADANIGREEN.NS",  "ADANIPOWER.NS",
+            # Metals & Mining
+            "APLAPOLLO.NS",   "COALINDIA.NS",   "HINDALCO.NS",    "HINDCOPPER.NS",  "JINDALSTEL.NS",
+            "JSWSTEEL.NS",    "NATIONALUM.NS",  "NMDC.NS",        "SAIL.NS",        "TATACHEM.NS",
+            "TATASTEEL.NS",   "VEDL.NS",
+            # Capital Goods & Industrials
+            "ABB.NS",         "ADANIENT.NS",    "ADANIPORTS.NS",  "BEL.NS",         "BHEL.NS",
+            "CGPOWER.NS",     "CONCOR.NS",      "CUMMINSIND.NS",  "GMRINFRA.NS",    "GRASIM.NS",
+            "HAL.NS",         "HAVELLS.NS",     "INDUSTOWER.NS",  "IRFC.NS",        "LT.NS",
+            "MAZAGON.NS",     "POLYCAB.NS",     "RVNL.NS",        "SIEMENS.NS",     "TIINDIA.NS",
+            # Cement
+            "ACC.NS",         "AMBUJACEM.NS",   "DALBHARAT.NS",   "RAMCOCEM.NS",    "SHREECEM.NS",
+            "ULTRACEMCO.NS",
+            # Chemicals
+            "AARTIIND.NS",    "CHAMBLFERT.NS",  "DEEPAKNTR.NS",   "GNFC.NS",        "PIIND.NS",
+            "SRF.NS",         "UPL.NS",
+            # Realty
+            "DLF.NS",         "GODREJPROP.NS",  "LODHA.NS",       "OBEROIRLTY.NS",
+            # Consumer Discretionary, Retail & Others
+            "ABFRL.NS",       "ASTRAL.NS",      "BHARTIARTL.NS",  "CROMPTON.NS",    "DELHIVERY.NS",
+            "DMART.NS",       "DIXON.NS",       "ETERNAL.NS",     "INDHOTEL.NS",    "INDIGO.NS",
+            "IRCTC.NS",       "JUBLFOOD.NS",    "KAJARIACER.NS",  "LINDEINDIA.NS",  "NAUKRI.NS",
+            "NYKAA.NS",       "PAYTM.NS",       "POLICYBZR.NS",   "PVRINOX.NS",     "RELIANCE.NS",
+            "SUNTV.NS",       "TATACOMM.NS",    "TITAN.NS",       "TRENT.NS",       "VOLTAS.NS",
+        ],
+    },
 }

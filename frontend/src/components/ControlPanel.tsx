@@ -44,7 +44,7 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
 
   const addSymbol = () => {
     const s = input.trim().toUpperCase()
-    if (s && !symbols.includes(s) && symbols.length < 60) {
+    if (s && !symbols.includes(s) && symbols.length < 200) {
       setSymbols(p => [...p, s])
       setInput('')
     }
@@ -57,7 +57,9 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
     try {
       const res = await getConstituents(bm)
       setSymbols(res.symbols)
-      onFetch({ symbols: res.symbols, benchmark: bm, period, tail_length: tailLength })
+      // For non-index constituent sets (e.g. F&O), keep the current benchmark
+      const effectiveBenchmark = bm.startsWith('^') ? bm : benchmark
+      onFetch({ symbols: res.symbols, benchmark: effectiveBenchmark, period, tail_length: tailLength })
     } catch {
       // unsupported benchmark — no-op
     } finally {
@@ -93,6 +95,13 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
             className="text-xs px-2.5 py-1 rounded-md bg-indigo-900/40 hover:bg-indigo-800/40 text-indigo-300 border border-indigo-800 transition-colors"
           >
             Nifty Sectors
+          </button>
+          <button
+            onClick={() => handleLoadConstituents('FNO')}
+            disabled={loading || loadingConstits}
+            className="text-xs px-2.5 py-1 rounded-md bg-emerald-900/40 hover:bg-emerald-800/40 disabled:opacity-50 text-emerald-300 border border-emerald-800 transition-colors"
+          >
+            NSE F&O
           </button>
         </div>
       </div>
@@ -168,7 +177,7 @@ export default function ControlPanel({ onFetch, onFetchSectors, loading }: Props
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Symbols
             <span className="text-slate-600 normal-case font-normal ml-1">
-              {initialized ? `(${symbols.length}/60)` : ''}
+              {initialized ? `(${symbols.length}/200)` : ''}
             </span>
           </label>
           {symbols.length > 0 && (
